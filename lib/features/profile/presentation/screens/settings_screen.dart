@@ -70,6 +70,7 @@ class _SettingsScreenState extends State<SettingsScreen> {
 
               GestureDetector(
                 onTap: () {
+                  Navigator.pushNamed(context, '/payment'); // Переход на /payment
                 },
                 child: _buildSettingItem(
                   icon: Icons.wallet_outlined,
@@ -77,21 +78,7 @@ class _SettingsScreenState extends State<SettingsScreen> {
                   trailing: Icon(Icons.arrow_forward_ios, color: Colors.grey[600], size: 18),
                 ),
               ),
-              const SizedBox(height: 20),
 
-              _buildSettingItem(
-                icon: Icons.wb_sunny_outlined,
-                title: 'Dark/Light mode',
-                trailing: Switch(
-                  value: _darkModeEnabled,
-                  onChanged: (value) {
-                    setState(() {
-                      _darkModeEnabled = value;
-                    });
-                  },
-                  activeColor: Colors.pink,
-                ),
-              ),
 
               const Spacer(),
 

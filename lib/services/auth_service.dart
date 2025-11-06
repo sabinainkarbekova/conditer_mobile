@@ -4,6 +4,8 @@ import 'dart:typed_data'; // Добавлено для Uint8List
 import 'package:http/http.dart' as http;
 import 'package:shared_preferences/shared_preferences.dart';
 
+import '../models/payment_card.dart';
+
 class AuthService {
   static const String baseUrl = 'http://localhost:8090';
   static const String authUrl = '$baseUrl/api/auth';
@@ -206,8 +208,6 @@ class AuthService {
       return null;
     }
   }
-  // services/auth_service.dart
-// ... остальные методы ...
 
   // АДМИН: Получить всех пользователей
   Future<List<Map<String, dynamic>>?> getAllUsers(String token) async {
@@ -287,6 +287,119 @@ class AuthService {
       }
     } catch (e) {
       print('Ошибка изменения роли пользователя: $e');
+      return {'error': e.toString()};
+    }
+  }
+
+  // Добавить карту
+  Future<Map<String, dynamic>?> addCard(String token, Map<String, dynamic> cardData) async {
+    try {
+      // Убираем securityCode из данных, отправляемых на сервер
+      final dataToSend = Map<String, dynamic>.from(cardData);
+      dataToSend.remove('securityCode'); // Убедимся, что CVV не отправляется
+
+      final response = await http.post(
+        Uri.parse('$baseUrl/api/cards/add'),
+        headers: {
+          'Authorization': 'Bearer $token',
+          'Content-Type': 'application/json',
+        },
+        body: jsonEncode(dataToSend),
+      );
+
+      print('Ответ от /cards/add: ${response.statusCode}, ${response.body}');
+
+      if (response.statusCode == 200) {
+        final data = jsonDecode(response.body);
+        return data;
+      } else {
+        final errorData = jsonDecode(response.body);
+        print('Ошибка добавления карты: ${errorData['error']}');
+        return {'error': errorData['error']};
+      }
+    } catch (e) {
+      print('Ошибка добавления карты: $e');
+      return {'error': e.toString()};
+    }
+  }
+
+  // Получить карты
+  Future<List<PaymentCard>?> getCards(String token) async {
+    try {
+      final response = await http.get(
+        Uri.parse('$baseUrl/api/cards/list'),
+        headers: {
+          'Authorization': 'Bearer $token',
+          'Content-Type': 'application/json',
+        },
+      );
+
+      print('Ответ от /cards/list: ${response.statusCode}, ${response.body}');
+
+      if (response.statusCode == 200) {
+        final List<dynamic> body = jsonDecode(response.body);
+        // Используем fromJson, который теперь корректно обрабатывает null для isDefault
+        return body.map((json) => PaymentCard.fromJson(json)).toList();
+      } else {
+        print('Ошибка получения карт: ${response.statusCode}');
+        return null;
+      }
+    } catch (e) {
+      print('Ошибка получения карт: $e');
+      return null;
+    }
+  }
+
+  // Удалить карту
+  Future<Map<String, dynamic>?> deleteCard(String token, int cardId) async {
+    try {
+      final response = await http.delete(
+        Uri.parse('$baseUrl/api/cards/$cardId'),
+        headers: {
+          'Authorization': 'Bearer $token',
+          'Content-Type': 'application/json',
+        },
+      );
+
+      print('Ответ от /cards/$cardId (delete): ${response.statusCode}, ${response.body}');
+
+      if (response.statusCode == 200) {
+        final data = jsonDecode(response.body);
+        return data;
+      } else {
+        final errorData = jsonDecode(response.body);
+        print('Ошибка удаления карты: ${errorData['error']}');
+        return {'error': errorData['error']};
+      }
+    } catch (e) {
+      print('Ошибка удаления карты: $e');
+      return {'error': e.toString()};
+    }
+  }
+
+  // Установить карту по умолчанию
+  Future<Map<String, dynamic>?> setDefaultCard(String token, int cardId) async {
+    try {
+      final response = await http.put(
+        Uri.parse('$baseUrl/api/cards/$cardId/default'),
+        headers: {
+          'Authorization': 'Bearer $token',
+          'Content-Type': 'application/json',
+        },
+      );
+
+      print('Ответ от /cards/$cardId/default: ${response.statusCode}, ${response.body}');
+
+      if (response.statusCode == 200) {
+        final data = jsonDecode(response.body);
+        return data;
+      } else {
+        final errorData = jsonDecode(response.body);
+        print('Ошибка установки карты по умолчанию: ${errorData['error']}');
+        return {'error': errorData['error']};
+      }
+    } catch (e) {
+      print('Ошибка установки карты по умолчанию: $e');
       return {'error': e.toString()};
     }
   }

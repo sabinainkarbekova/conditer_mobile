@@ -98,7 +98,6 @@ class _HomeScreenState extends State<HomeScreen> with TickerProviderStateMixin {
                       height: 80,
                       fit: BoxFit.contain,
                     ),
-                    const Icon(Icons.arrow_forward_ios, color: Colors.white, size: 22),
                   ],
                 ),
               ),
@@ -145,7 +144,7 @@ class _HomeScreenState extends State<HomeScreen> with TickerProviderStateMixin {
               const SizedBox(height: 40),
 
               SizedBox(
-                height: 450,
+                height: 225 , //370 ili 350
                 child: AnimatedSwitcher(
                   duration: const Duration(milliseconds: 500),
                   transitionBuilder: (Widget child, Animation<double> animation) {

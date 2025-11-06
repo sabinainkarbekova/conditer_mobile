@@ -1,8 +1,10 @@
+// lib/features/cake/presentation/pages/cream_selection_screen.dart
 import 'package:flutter/material.dart';
 import '../../../../models/cake_model.dart';
 import '../../../../models/cream.dart';
 import '../../../../services/api_service.dart';
 import 'filling_selection.dart';
+import '../../../../services/auth_service.dart'; // Импортируем AuthService для проверки токена
 
 class CreamSelectionScreen extends StatefulWidget {
   final CakeModel cakeModel;
@@ -26,7 +28,23 @@ class _CreamSelectionScreenState extends State<CreamSelectionScreen> {
   @override
   void initState() {
     super.initState();
-    _loadCreams();
+    _checkTokenAndLoadCreams(); // Проверяем токен и загружаем кремы
+  }
+
+  // Функция для проверки токена и загрузки данных
+  Future<void> _checkTokenAndLoadCreams() async {
+    final authService = AuthService();
+    final token = await authService.getToken();
+
+    if (token == null) {
+      // Если токена нет, возвращаемся к корню (обычно ProfileScreen)
+      if (mounted) {
+        Navigator.of(context).popUntil((route) => route.isFirst);
+      }
+      return;
+    }
+
+    _loadCreams(); // Если токен есть, загружаем кремы
   }
 
   Future<void> _loadCreams() async {
@@ -82,7 +100,7 @@ class _CreamSelectionScreenState extends State<CreamSelectionScreen> {
     if (widget.cakeModel.selectedCreamId != null) {
       try {
         selectedCream = _creams.firstWhere(
-              (cream) => cream.id == widget.cakeModel.selectedCreamId,
+              (cream) => cream.id == widget.cakeModel.selectedCreamId!,
         );
       } catch (e) {
         selectedCream = null;
@@ -91,170 +109,194 @@ class _CreamSelectionScreenState extends State<CreamSelectionScreen> {
 
     return Scaffold(
       backgroundColor: Colors.white,
-      appBar: AppBar(
-        backgroundColor: Colors.white,
-        elevation: 0,
-        leading: IconButton(
-          icon: const Icon(Icons.arrow_back_ios, color: Colors.black, size: 20),
-          onPressed: _onBackPressed,
-        ),
-        title: const Text(
-          'Back',
-          style: TextStyle(
-            color: Colors.black,
-            fontSize: 16,
-            fontWeight: FontWeight.w400,
-          ),
-        ),
-      ),
-      body: _isLoading
-          ? const Center(
-        child: CircularProgressIndicator(color: Color(0xFFFF4081)),
-      )
-          : _error != null
-          ? Center(
-        child: Column(
-          mainAxisAlignment: MainAxisAlignment.center,
-          children: [
-            Text('Ошибка: $_error'),
-            const SizedBox(height: 20),
-            ElevatedButton(
-              onPressed: _loadCreams,
-              style: ElevatedButton.styleFrom(
-                backgroundColor: const Color(0xFFFF4081),
-              ),
-              child: const Text('Повторить'),
-            ),
-          ],
-        ),
-      )
-          : Column(
-        children: [
-          Expanded(
+      // Убираем AppBar
+      body: SafeArea(
+        child: Padding(
+          padding: const EdgeInsets.symmetric(horizontal: 20.0, vertical: 24.0),
+          child: _isLoading
+              ? const Center(
+            child: CircularProgressIndicator(color: Colors.pink),
+          )
+              : _error != null
+              ? Center(
             child: Column(
               mainAxisAlignment: MainAxisAlignment.center,
               children: [
-                // 3D Cake Preview with Cream
-                _build3DCakePreview(selectedCream),
-
-                const SizedBox(height: 40),
-
-                // Title
-                Container(
-                  width: double.infinity,
-                  padding: const EdgeInsets.symmetric(
-                    horizontal: 20,
-                    vertical: 12,
+                Text(
+                  'Error: $_error',
+                  style: TextStyle(
+                    fontFamily: 'Poppins',
+                    color: Colors.red,
                   ),
-                  color: const Color(0xFFFF4081),
-                  child: const Text(
-                    'Выберите крем',
-                    textAlign: TextAlign.center,
+                ),
+                const SizedBox(height: 20),
+                ElevatedButton(
+                  onPressed: _loadCreams,
+                  style: ElevatedButton.styleFrom(
+                    backgroundColor: Colors.pink,
+                  ),
+                  child: Text(
+                    'Retry',
                     style: TextStyle(
+                      fontFamily: 'Poppins',
                       color: Colors.white,
-                      fontSize: 16,
-                      fontWeight: FontWeight.w600,
                     ),
                   ),
                 ),
+              ],
+            ),
+          )
+              : Column(
+            children: [
+              // Заголовок и кнопка "Back"
+              Row(
+                children: [
 
-                const SizedBox(height: 30),
+                  const Spacer(),
+                  // Добавим логотип, если он есть
+                  Image.asset(
+                    'assets/images/logo2.png', // Укажи путь к логотипу
+                    height: 80,
+                    fit: BoxFit.contain,
+                  ),
+                ],
+              ),
+              const SizedBox(height: 20),
 
-                // Cream Selection Cards
-                SizedBox(
-                  height: 120,
-                  child: ListView.builder(
-                    scrollDirection: Axis.horizontal,
-                    padding: const EdgeInsets.symmetric(horizontal: 20),
-                    itemCount: _creams.length,
-                    itemBuilder: (context, index) {
-                      final cream = _creams[index];
-                      final isSelected =
-                          widget.cakeModel.selectedCreamId == cream.id;
+              // 3D Cake Preview with Cream
+              _build3DCakePreview(selectedCream),
 
-                      return _CreamCard(
-                        cream: cream,
-                        isSelected: isSelected,
-                        creamColor: _hexToColor(cream.hexCode),
-                        onTap: () => _onCreamSelected(cream),
-                      );
-                    },
+              const SizedBox(height: 40),
+
+              // Title
+              Container(
+                width: double.infinity,
+                padding: const EdgeInsets.symmetric(
+                  horizontal: 20,
+                  vertical: 12,
+                ),
+                decoration: BoxDecoration(
+                  color: Colors.pink, // Розовый цвет
+                  borderRadius: BorderRadius.circular(15), // Закругления
+                ),
+                child: const Text(
+                  'Select Cream',
+                  textAlign: TextAlign.center,
+                  style: TextStyle(
+                    fontFamily: 'Poppins',
+                    color: Colors.white,
+                    fontSize: 16,
+                    fontWeight: FontWeight.w600,
                   ),
                 ),
-              ],
-            ),
-          ),
+              ),
 
-          // Bottom Buttons
-          Container(
-            padding: const EdgeInsets.all(20),
-            decoration: BoxDecoration(
-              color: Colors.white,
-              boxShadow: [
-                BoxShadow(
-                  color: Colors.grey.withOpacity(0.1),
-                  spreadRadius: 1,
-                  blurRadius: 10,
-                  offset: const Offset(0, -3),
+              const SizedBox(height: 30),
+
+              // Основной контент (список кремов) - будет прокручиваться
+              Expanded(
+                child: Column(
+                  children: [
+                    // Cream Selection Cards (прокручиваемый список)
+                    SizedBox(
+                      height: 122, // Фиксированная высота для списка кремов
+                      child: ListView.builder(
+                        scrollDirection: Axis.horizontal,
+                        padding: const EdgeInsets.symmetric(horizontal: 20),
+                        itemCount: _creams.length,
+                        itemBuilder: (context, index) {
+                          final cream = _creams[index];
+                          final isSelected =
+                              widget.cakeModel.selectedCreamId == cream.id;
+
+                          return _CreamCard(
+                            cream: cream,
+                            isSelected: isSelected,
+                            creamColor: _hexToColor(cream.hexCode),
+                            onTap: () => _onCreamSelected(cream),
+                          );
+                        },
+                      ),
+                    ),
+                    const SizedBox(height: 20), // Отступ перед кнопками внутри Expanded
+                  ],
                 ),
-              ],
-            ),
-            child: Row(
-              children: [
-                Expanded(
-                  child: ElevatedButton(
-                    onPressed: _onBackPressed,
-                    style: ElevatedButton.styleFrom(
-                      backgroundColor: Colors.white,
-                      foregroundColor: const Color(0xFFFF4081),
-                      padding: const EdgeInsets.symmetric(vertical: 16),
-                      shape: RoundedRectangleBorder(
-                        borderRadius: BorderRadius.circular(25),
-                        side: const BorderSide(
-                          color: Color(0xFFFF4081),
-                          width: 2,
+              ),
+
+              // Bottom Buttons - *вне* прокручиваемой области, всегда внизу
+              Container(
+                padding: const EdgeInsets.symmetric(horizontal: 20, vertical: 20),
+                decoration: BoxDecoration(
+                  color: Colors.white,
+                  boxShadow: [
+                    BoxShadow(
+                      color: Colors.grey.withOpacity(0.1),
+                      spreadRadius: 1,
+                      blurRadius: 10,
+                      offset: const Offset(0, -3),
+                    ),
+                  ],
+                ),
+                child: Row(
+                  children: [
+                    Expanded(
+                      child: ElevatedButton(
+                        onPressed: _onBackPressed,
+                        style: ElevatedButton.styleFrom(
+                          backgroundColor: Colors.pink[50], // Светло-розовый
+                          foregroundColor: Colors.pink, // Текст розовый
+                          padding: const EdgeInsets.symmetric(vertical: 16),
+                          shape: RoundedRectangleBorder(
+                            borderRadius: BorderRadius.circular(20), // Закругления
+                            side: BorderSide(
+                              color: Colors.pink, // Обводка розовая
+                              width: 1,
+                            ),
+                          ),
+                          elevation: 0,
+                        ),
+                        child: Text(
+                          'Back',
+                          style: TextStyle(
+                            fontFamily: 'Poppins',
+                            fontSize: 16,
+                            fontWeight: FontWeight.w600,
+                          ),
                         ),
                       ),
-                      elevation: 0,
                     ),
-                    child: const Text(
-                      'Назад',
-                      style: TextStyle(
-                        fontSize: 16,
-                        fontWeight: FontWeight.w600,
+                    const SizedBox(width: 16),
+                    Expanded(
+                      child: ElevatedButton(
+                        onPressed: widget.cakeModel.selectedCreamId != null
+                            ? _onNextPressed
+                            : null,
+                        style: ElevatedButton.styleFrom(
+                          backgroundColor: Colors.pink, // Розовый цвет
+                          disabledBackgroundColor: Colors.grey[300],
+                          padding: const EdgeInsets.symmetric(vertical: 16),
+                          shape: RoundedRectangleBorder(
+                            borderRadius: BorderRadius.circular(20), // Закругления
+                          ),
+                          elevation: 2,
+                        ),
+                        child: Text(
+                          'Next',
+                          style: TextStyle(
+                            fontFamily: 'Poppins',
+                            fontSize: 16,
+                            fontWeight: FontWeight.w600,
+                            color: Colors.white,
+                          ),
+                        ),
                       ),
                     ),
-                  ),
+                  ],
                 ),
-                const SizedBox(width: 16),
-                Expanded(
-                  child: ElevatedButton(
-                    onPressed: widget.cakeModel.selectedCreamId != null
-                        ? _onNextPressed
-                        : null,
-                    style: ElevatedButton.styleFrom(
-                      backgroundColor: const Color(0xFFFF4081),
-                      disabledBackgroundColor: Colors.grey[300],
-                      padding: const EdgeInsets.symmetric(vertical: 16),
-                      shape: RoundedRectangleBorder(
-                        borderRadius: BorderRadius.circular(25),
-                      ),
-                      elevation: 2,
-                    ),
-                    child: const Text(
-                      'Далее',
-                      style: TextStyle(
-                        fontSize: 16,
-                        fontWeight: FontWeight.w600,
-                        color: Colors.white,
-                      ),
-                    ),
-                  ),
-                ),
-              ],
-            ),
+              ),
+            ],
           ),
-        ],
+        ),
       ),
     );
   }
@@ -334,7 +376,7 @@ class _CreamCard extends StatelessWidget {
                 borderRadius: BorderRadius.circular(15),
                 border: Border.all(
                   color: isSelected
-                      ? const Color(0xFFFF4081)
+                      ? Colors.pink // Розовый цвет бордера
                       : Colors.transparent,
                   width: 3,
                 ),
@@ -348,7 +390,7 @@ class _CreamCard extends StatelessWidget {
                   ),
                   child: Image.asset(
                     'assets/images/creams/creamForCatalog.png',
-                    fit: BoxFit.cover,
+                    fit: BoxFit.contain, // Важно для масштабирования
                   ),
                 ),
               ),
@@ -357,9 +399,10 @@ class _CreamCard extends StatelessWidget {
             Text(
               cream.name,
               style: TextStyle(
+                fontFamily: 'Poppins',
                 fontSize: 12,
                 fontWeight: isSelected ? FontWeight.w600 : FontWeight.w400,
-                color: isSelected ? const Color(0xFFFF4081) : Colors.black87,
+                color: isSelected ? Colors.pink : Colors.black87,
               ),
               textAlign: TextAlign.center,
               maxLines: 2,

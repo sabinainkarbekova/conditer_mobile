@@ -114,12 +114,12 @@ class _LocationScreenState extends State<LocationScreen> {
                   ),
 
                   // Кнопка
-                  FloatingActionButton(
-                    onPressed: () {
-                    },
-                    backgroundColor: Colors.pink,
-                    child: const Icon(Icons.add, color: Colors.white),
-                  ),
+                  // FloatingActionButton(
+                  //   onPressed: () {
+                  //   },
+                  //   backgroundColor: Colors.pink,
+                  //   child: const Icon(Icons.add, color: Colors.white),
+                  // ),
                 ],
               ),
             ],

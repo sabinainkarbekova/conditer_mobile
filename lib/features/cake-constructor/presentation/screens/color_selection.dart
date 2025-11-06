@@ -1,8 +1,10 @@
+// lib/features/cake/presentation/pages/color_selection_screen.dart
 import 'package:flutter/material.dart';
 import '../../../../models/cake_model.dart';
 import '../../../../models/color.dart';
 import '../../../../services/api_service.dart';
 import 'summary_page.dart';
+import '../../../../services/auth_service.dart'; // Импортируем AuthService для проверки токена
 
 class ColorSelectionScreen extends StatefulWidget {
   final CakeModel cakeModel;
@@ -26,7 +28,23 @@ class _ColorSelectionScreenState extends State<ColorSelectionScreen> {
   @override
   void initState() {
     super.initState();
-    _loadColors();
+    _checkTokenAndLoadColors(); // Проверяем токен и загружаем цвета
+  }
+
+  // Функция для проверки токена и загрузки данных
+  Future<void> _checkTokenAndLoadColors() async {
+    final authService = AuthService();
+    final token = await authService.getToken();
+
+    if (token == null) {
+      // Если токена нет, возвращаемся к корню (обычно ProfileScreen)
+      if (mounted) {
+        Navigator.of(context).popUntil((route) => route.isFirst);
+      }
+      return;
+    }
+
+    _loadColors(); // Если токен есть, загружаем цвета
   }
 
   Future<void> _loadColors() async {
@@ -79,7 +97,7 @@ class _ColorSelectionScreenState extends State<ColorSelectionScreen> {
     if (widget.cakeModel.selectedColorId != null) {
       try {
         selectedColor = _colors.firstWhere(
-              (color) => color.id == widget.cakeModel.selectedColorId,
+              (color) => color.id == widget.cakeModel.selectedColorId!,
         );
       } catch (e) {
         selectedColor = null;
@@ -88,170 +106,193 @@ class _ColorSelectionScreenState extends State<ColorSelectionScreen> {
 
     return Scaffold(
       backgroundColor: Colors.white,
-      appBar: AppBar(
-        backgroundColor: Colors.white,
-        elevation: 0,
-        leading: IconButton(
-          icon: const Icon(Icons.arrow_back_ios, color: Colors.black, size: 20),
-          onPressed: _onBackPressed,
-        ),
-        title: const Text(
-          'Back',
-          style: TextStyle(
-            color: Colors.black,
-            fontSize: 16,
-            fontWeight: FontWeight.w400,
-          ),
-        ),
-      ),
-      body: _isLoading
-          ? const Center(
-        child: CircularProgressIndicator(color: Color(0xFFFF4081)),
-      )
-          : _error != null
-          ? Center(
-        child: Column(
-          mainAxisAlignment: MainAxisAlignment.center,
-          children: [
-            Text('Ошибка: $_error'),
-            const SizedBox(height: 20),
-            ElevatedButton(
-              onPressed: _loadColors,
-              style: ElevatedButton.styleFrom(
-                backgroundColor: const Color(0xFFFF4081),
-              ),
-              child: const Text('Повторить'),
-            ),
-          ],
-        ),
-      )
-          : Column(
-        children: [
-          Expanded(
+      // Убираем AppBar
+      body: SafeArea(
+        child: Padding(
+          padding: const EdgeInsets.symmetric(horizontal: 20.0, vertical: 24.0),
+          child: _isLoading
+              ? const Center(
+            child: CircularProgressIndicator(color: Colors.pink),
+          )
+              : _error != null
+              ? Center(
             child: Column(
               mainAxisAlignment: MainAxisAlignment.center,
               children: [
-                // 3D Cake Preview
-                _build3DCakePreview(selectedColor),
-
-                const SizedBox(height: 40),
-
-                // Title
-                Container(
-                  width: double.infinity,
-                  padding: const EdgeInsets.symmetric(
-                    horizontal: 20,
-                    vertical: 12,
+                Text(
+                  'Error: $_error',
+                  style: TextStyle(
+                    fontFamily: 'Poppins',
+                    color: Colors.red,
                   ),
-                  color: const Color(0xFFFF4081),
-                  child: const Text(
-                    'Выберите цвет покрытия',
-                    textAlign: TextAlign.center,
+                ),
+                const SizedBox(height: 20),
+                ElevatedButton(
+                  onPressed: _loadColors,
+                  style: ElevatedButton.styleFrom(
+                    backgroundColor: Colors.pink,
+                  ),
+                  child: Text(
+                    'Retry',
                     style: TextStyle(
+                      fontFamily: 'Poppins',
                       color: Colors.white,
-                      fontSize: 16,
-                      fontWeight: FontWeight.w600,
                     ),
                   ),
                 ),
+              ],
+            ),
+          )
+              : Column(
+            children: [
+              // Заголовок и кнопка "Back"
+              Row(
+                children: [
+                  const Spacer(),
+                  // Добавим логотип, если он есть
+                  Image.asset(
+                    'assets/images/logo2.png', // Укажи путь к логотипу
+                    height: 80,
+                    fit: BoxFit.contain,
+                  ),
+                ],
+              ),
+              const SizedBox(height: 20),
 
-                const SizedBox(height: 30),
+              // 3D Cake Preview
+              _build3DCakePreview(selectedColor),
 
-                // Color Selection Cards
-                SizedBox(
-                  height: 120,
-                  child: ListView.builder(
-                    scrollDirection: Axis.horizontal,
-                    padding: const EdgeInsets.symmetric(horizontal: 20),
-                    itemCount: _colors.length,
-                    itemBuilder: (context, index) {
-                      final color = _colors[index];
-                      final isSelected =
-                          widget.cakeModel.selectedColorId == color.id;
+              const SizedBox(height: 40),
 
-                      return _ColorCard(
-                        color: color,
-                        isSelected: isSelected,
-                        colorValue: _hexToColor(color.hexCode),
-                        onTap: () => _onColorSelected(color),
-                      );
-                    },
+              // Title
+              Container(
+                width: double.infinity,
+                padding: const EdgeInsets.symmetric(
+                  horizontal: 20,
+                  vertical: 12,
+                ),
+                decoration: BoxDecoration(
+                  color: Colors.pink, // Розовый цвет
+                  borderRadius: BorderRadius.circular(15), // Закругления
+                ),
+                child: const Text(
+                  'Select Coating Color',
+                  textAlign: TextAlign.center,
+                  style: TextStyle(
+                    fontFamily: 'Poppins',
+                    color: Colors.white,
+                    fontSize: 16,
+                    fontWeight: FontWeight.w600,
                   ),
                 ),
-              ],
-            ),
-          ),
+              ),
 
-          // Bottom Buttons
-          Container(
-            padding: const EdgeInsets.all(20),
-            decoration: BoxDecoration(
-              color: Colors.white,
-              boxShadow: [
-                BoxShadow(
-                  color: Colors.grey.withOpacity(0.1),
-                  spreadRadius: 1,
-                  blurRadius: 10,
-                  offset: const Offset(0, -3),
+              const SizedBox(height: 30),
+
+              // Основной контент (список цветов) - будет прокручиваться
+              Expanded(
+                child: Column(
+                  children: [
+                    // Color Selection Cards (прокручиваемый список)
+                    SizedBox(
+                      height: 122, // Фиксированная высота для списка цветов
+                      child: ListView.builder(
+                        scrollDirection: Axis.horizontal,
+                        padding: const EdgeInsets.symmetric(horizontal: 20),
+                        itemCount: _colors.length,
+                        itemBuilder: (context, index) {
+                          final color = _colors[index];
+                          final isSelected =
+                              widget.cakeModel.selectedColorId == color.id;
+
+                          return _ColorCard(
+                            color: color,
+                            isSelected: isSelected,
+                            colorValue: _hexToColor(color.hexCode),
+                            onTap: () => _onColorSelected(color),
+                          );
+                        },
+                      ),
+                    ),
+                    const SizedBox(height: 20), // Отступ перед кнопками внутри Expanded
+                  ],
                 ),
-              ],
-            ),
-            child: Row(
-              children: [
-                Expanded(
-                  child: ElevatedButton(
-                    onPressed: _onBackPressed,
-                    style: ElevatedButton.styleFrom(
-                      backgroundColor: Colors.white,
-                      foregroundColor: const Color(0xFFFF4081),
-                      padding: const EdgeInsets.symmetric(vertical: 16),
-                      shape: RoundedRectangleBorder(
-                        borderRadius: BorderRadius.circular(25),
-                        side: const BorderSide(
-                          color: Color(0xFFFF4081),
-                          width: 2,
+              ),
+
+              // Bottom Buttons - *вне* прокручиваемой области, всегда внизу
+              Container(
+                padding: const EdgeInsets.symmetric(horizontal: 20, vertical: 20),
+                decoration: BoxDecoration(
+                  color: Colors.white,
+                  boxShadow: [
+                    BoxShadow(
+                      color: Colors.grey.withOpacity(0.1),
+                      spreadRadius: 1,
+                      blurRadius: 10,
+                      offset: const Offset(0, -3),
+                    ),
+                  ],
+                ),
+                child: Row(
+                  children: [
+                    Expanded(
+                      child: ElevatedButton(
+                        onPressed: _onBackPressed,
+                        style: ElevatedButton.styleFrom(
+                          backgroundColor: Colors.pink[50], // Светло-розовый
+                          foregroundColor: Colors.pink, // Текст розовый
+                          padding: const EdgeInsets.symmetric(vertical: 16),
+                          shape: RoundedRectangleBorder(
+                            borderRadius: BorderRadius.circular(20), // Закругления
+                            side: BorderSide(
+                              color: Colors.pink, // Обводка розовая
+                              width: 1,
+                            ),
+                          ),
+                          elevation: 0,
+                        ),
+                        child: Text(
+                          'Back',
+                          style: TextStyle(
+                            fontFamily: 'Poppins',
+                            fontSize: 16,
+                            fontWeight: FontWeight.w600,
+                          ),
                         ),
                       ),
-                      elevation: 0,
                     ),
-                    child: const Text(
-                      'Назад',
-                      style: TextStyle(
-                        fontSize: 16,
-                        fontWeight: FontWeight.w600,
+                    const SizedBox(width: 16),
+                    Expanded(
+                      child: ElevatedButton(
+                        onPressed: widget.cakeModel.selectedColorId != null
+                            ? _onNextPressed
+                            : null,
+                        style: ElevatedButton.styleFrom(
+                          backgroundColor: Colors.pink, // Розовый цвет
+                          disabledBackgroundColor: Colors.grey[300],
+                          padding: const EdgeInsets.symmetric(vertical: 16),
+                          shape: RoundedRectangleBorder(
+                            borderRadius: BorderRadius.circular(20), // Закругления
+                          ),
+                          elevation: 2,
+                        ),
+                        child: Text(
+                          'Next',
+                          style: TextStyle(
+                            fontFamily: 'Poppins',
+                            fontSize: 16,
+                            fontWeight: FontWeight.w600,
+                            color: Colors.white,
+                          ),
+                        ),
                       ),
                     ),
-                  ),
+                  ],
                 ),
-                const SizedBox(width: 16),
-                Expanded(
-                  child: ElevatedButton(
-                    onPressed: widget.cakeModel.selectedColorId != null
-                        ? _onNextPressed
-                        : null,
-                    style: ElevatedButton.styleFrom(
-                      backgroundColor: const Color(0xFFFF4081),
-                      disabledBackgroundColor: Colors.grey[300],
-                      padding: const EdgeInsets.symmetric(vertical: 16),
-                      shape: RoundedRectangleBorder(
-                        borderRadius: BorderRadius.circular(25),
-                      ),
-                      elevation: 2,
-                    ),
-                    child: const Text(
-                      'Далее',
-                      style: TextStyle(
-                        fontSize: 16,
-                        fontWeight: FontWeight.w600,
-                        color: Colors.white,
-                      ),
-                    ),
-                  ),
-                ),
-              ],
-            ),
+              ),
+            ],
           ),
-        ],
+        ),
       ),
     );
   }
@@ -332,7 +373,7 @@ class _ColorCard extends StatelessWidget {
                 borderRadius: BorderRadius.circular(15),
                 border: Border.all(
                   color: isSelected
-                      ? const Color(0xFFFF4081)
+                      ? Colors.pink // Розовый цвет бордера
                       : Colors.transparent,
                   width: 3,
                 ),
@@ -359,9 +400,10 @@ class _ColorCard extends StatelessWidget {
             Text(
               color.name,
               style: TextStyle(
+                fontFamily: 'Poppins',
                 fontSize: 12,
                 fontWeight: isSelected ? FontWeight.w600 : FontWeight.w400,
-                color: isSelected ? const Color(0xFFFF4081) : Colors.black87,
+                color: isSelected ? Colors.pink : Colors.black87,
               ),
               textAlign: TextAlign.center,
               maxLines: 2,

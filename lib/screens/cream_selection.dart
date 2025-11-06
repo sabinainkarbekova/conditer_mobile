@@ -1,41 +1,39 @@
-// lib/features/cake/presentation/pages/layer_selection_screen.dart
 import 'package:flutter/material.dart';
-import '../../../../models/cake_model.dart';
-import '../../../../models/layer.dart';
-import '../../../../services/api_service.dart';
-import 'cream_selection.dart';
-import '../../../../services/auth_service.dart'; // Импортируем AuthService для проверки токена
+import '../models/cream.dart';
+import '../models/cake_model.dart';
+import '../services/api_service.dart';
+import 'filling_selection.dart';
 
-class LayerSelectionScreen extends StatefulWidget {
+class CreamSelectionScreen extends StatefulWidget {
   final CakeModel cakeModel;
   final ApiService apiService;
 
-  const LayerSelectionScreen({
+  const CreamSelectionScreen({
     Key? key,
     required this.cakeModel,
     required this.apiService,
   }) : super(key: key);
 
   @override
-  _LayerSelectionScreenState createState() => _LayerSelectionScreenState();
+  _CreamSelectionScreenState createState() => _CreamSelectionScreenState();
 }
 
-class _LayerSelectionScreenState extends State<LayerSelectionScreen> {
-  List<Layer> _layers = [];
+class _CreamSelectionScreenState extends State<CreamSelectionScreen> {
+  List<CreamModel> _creams = [];
   bool _isLoading = true;
   String? _error;
 
   @override
   void initState() {
     super.initState();
-    _loadLayers();
+    _loadCreams();
   }
 
-  Future<void> _loadLayers() async {
+  Future<void> _loadCreams() async {
     try {
-      final layers = await widget.apiService.getLayers();
+      final creams = await widget.apiService.getCreams();
       setState(() {
-        _layers = layers;
+        _creams = creams;
         _isLoading = false;
       });
     } catch (e) {
@@ -46,21 +44,21 @@ class _LayerSelectionScreenState extends State<LayerSelectionScreen> {
     }
   }
 
-  void _onLayerSelected(Layer layer) {
-    widget.cakeModel.selectLayer(
-      layer.id,
-      color: _hexToColor(layer.hexCode),
-    );
-    // Вызываем setState, чтобы перестроить виджет с новым выбранным слоем
-    setState(() {});
+  void _onCreamSelected(CreamModel cream) {
+    setState(() {
+      widget.cakeModel.selectCream(
+        cream.id,
+        color: _hexToColor(cream.hexCode),
+      );
+    });
   }
 
   void _onNextPressed() {
-    if (widget.cakeModel.selectedLayerId != null) {
+    if (widget.cakeModel.selectedCreamId != null) {
       Navigator.push(
         context,
         MaterialPageRoute(
-          builder: (context) => CreamSelectionScreen(
+          builder: (context) => FillingSelectionScreen(
             cakeModel: widget.cakeModel,
             apiService: widget.apiService,
           ),
@@ -70,9 +68,7 @@ class _LayerSelectionScreenState extends State<LayerSelectionScreen> {
   }
 
   void _onBackPressed() {
-    widget.cakeModel.selectLayer(null);
-    // Вызываем setState, чтобы перестроить виджет и сбросить выделение
-    setState(() {});
+    widget.cakeModel.selectCream(null);
     Navigator.of(context).pop();
   }
 
@@ -82,14 +78,14 @@ class _LayerSelectionScreenState extends State<LayerSelectionScreen> {
 
   @override
   Widget build(BuildContext context) {
-    Layer? selectedLayer;
-    if (widget.cakeModel.selectedLayerId != null) {
+    CreamModel? selectedCream;
+    if (widget.cakeModel.selectedCreamId != null) {
       try {
-        selectedLayer = _layers.firstWhere(
-              (layer) => layer.id == widget.cakeModel.selectedLayerId!,
+        selectedCream = _creams.firstWhere(
+              (cream) => cream.id == widget.cakeModel.selectedCreamId,
         );
       } catch (e) {
-        selectedLayer = null;
+        selectedCream = null;
       }
     }
 
@@ -120,9 +116,15 @@ class _LayerSelectionScreenState extends State<LayerSelectionScreen> {
         child: Column(
           mainAxisAlignment: MainAxisAlignment.center,
           children: [
-            Text('Ошибка: Token not found'),
+            Text('Ошибка: $_error'),
             const SizedBox(height: 20),
-
+            ElevatedButton(
+              onPressed: _loadCreams,
+              style: ElevatedButton.styleFrom(
+                backgroundColor: const Color(0xFFFF4081),
+              ),
+              child: const Text('Повторить'),
+            ),
           ],
         ),
       )
@@ -132,8 +134,8 @@ class _LayerSelectionScreenState extends State<LayerSelectionScreen> {
             child: Column(
               mainAxisAlignment: MainAxisAlignment.center,
               children: [
-                // 3D Cake Preview - интегрировано сюда
-                _build3DCakePreview(selectedLayer),
+                // 3D Cake Preview with Cream
+                _build3DCakePreview(selectedCream),
 
                 const SizedBox(height: 40),
 
@@ -146,7 +148,7 @@ class _LayerSelectionScreenState extends State<LayerSelectionScreen> {
                   ),
                   color: const Color(0xFFFF4081),
                   child: const Text(
-                    'Выберите корж',
+                    'Выберите крем',
                     textAlign: TextAlign.center,
                     style: TextStyle(
                       color: Colors.white,
@@ -158,22 +160,23 @@ class _LayerSelectionScreenState extends State<LayerSelectionScreen> {
 
                 const SizedBox(height: 30),
 
-                // Layer Selection Cards
+                // Cream Selection Cards
                 SizedBox(
-                  height: 122,
+                  height: 120,
                   child: ListView.builder(
                     scrollDirection: Axis.horizontal,
                     padding: const EdgeInsets.symmetric(horizontal: 20),
-                    itemCount: _layers.length,
+                    itemCount: _creams.length,
                     itemBuilder: (context, index) {
-                      final layer = _layers[index];
-                      final isSelected = widget.cakeModel.selectedLayerId == layer.id;
+                      final cream = _creams[index];
+                      final isSelected =
+                          widget.cakeModel.selectedCreamId == cream.id;
 
-                      return _LayerCard(
-                        layer: layer,
+                      return _CreamCard(
+                        cream: cream,
                         isSelected: isSelected,
-                        layerColor: _hexToColor(layer.hexCode), // цвет из БД
-                        onTap: () => _onLayerSelected(layer),
+                        creamColor: _hexToColor(cream.hexCode),
+                        onTap: () => _onCreamSelected(cream),
                       );
                     },
                   ),
@@ -226,7 +229,7 @@ class _LayerSelectionScreenState extends State<LayerSelectionScreen> {
                 const SizedBox(width: 16),
                 Expanded(
                   child: ElevatedButton(
-                    onPressed: widget.cakeModel.selectedLayerId != null
+                    onPressed: widget.cakeModel.selectedCreamId != null
                         ? _onNextPressed
                         : null,
                     style: ElevatedButton.styleFrom(
@@ -256,9 +259,10 @@ class _LayerSelectionScreenState extends State<LayerSelectionScreen> {
     );
   }
 
-  Widget _build3DCakePreview(Layer? selectedLayer) {
-    // Определяем цвет слоя на основе модели или выбранного слоя
-    Color layerColor = widget.cakeModel.selectedLayerColor ?? (selectedLayer != null ? _hexToColor(selectedLayer.hexCode) : Colors.white);
+  Widget _build3DCakePreview(CreamModel? selectedCream) {
+    Color layerColor = widget.cakeModel.selectedLayerColor ?? Colors.grey[300]!;
+    Color creamColor = widget.cakeModel.selectedCreamColor ??
+        (selectedCream != null ? _hexToColor(selectedCream.hexCode) : Colors.white);
 
     return Container(
       width: 200,
@@ -266,40 +270,52 @@ class _LayerSelectionScreenState extends State<LayerSelectionScreen> {
       child: Stack(
         alignment: Alignment.center,
         children: [
-          // Изображение коржа с примененным цветом
-          if (selectedLayer != null)
+          // Layer (если выбран)
+          if (widget.cakeModel.selectedLayerId != null)
             ColorFiltered(
               colorFilter: ColorFilter.mode(
                 layerColor,
                 BlendMode.modulate,
               ),
               child: Image.asset(
-                'assets/images/layers/layer1.png', // Общее изображение слоя
+                'assets/images/layers/layer2.png',
                 width: 200,
                 height: 200,
                 fit: BoxFit.contain,
               ),
             ),
-          // Здесь можно добавить крем, если он выбран в cakeModel
-          // if (widget.cakeModel.selectedCreamId != null) ...
+
+          // Cream (если выбран)
+          if (selectedCream != null)
+            ColorFiltered(
+              colorFilter: ColorFilter.mode(
+                creamColor,
+                BlendMode.modulate,
+              ),
+              child: Image.asset(
+                'assets/images/creams/cream1.png',
+                width: 200,
+                height: 200,
+                fit: BoxFit.contain,
+              ),
+            ),
         ],
       ),
     );
   }
 }
 
-// Внутренний виджет карточки слоя остается без изменений
-class _LayerCard extends StatelessWidget {
-  final Layer layer;
+class _CreamCard extends StatelessWidget {
+  final CreamModel cream;
   final bool isSelected;
+  final Color creamColor;
   final VoidCallback onTap;
-  final Color layerColor;
 
-  const _LayerCard({
-    required this.layer,
+  const _CreamCard({
+    required this.cream,
     required this.isSelected,
+    required this.creamColor,
     required this.onTap,
-    required this.layerColor,
   });
 
   @override
@@ -327,11 +343,11 @@ class _LayerCard extends StatelessWidget {
                 borderRadius: BorderRadius.circular(15),
                 child: ColorFiltered(
                   colorFilter: ColorFilter.mode(
-                    layerColor,
+                    creamColor,
                     BlendMode.modulate,
                   ),
                   child: Image.asset(
-                    'assets/images/layers/layer1.png', // одна картинка для всех слоёв
+                    'assets/images/creams/creamForCatalog.png',
                     fit: BoxFit.cover,
                   ),
                 ),
@@ -339,7 +355,7 @@ class _LayerCard extends StatelessWidget {
             ),
             const SizedBox(height: 8),
             Text(
-              layer.name,
+              cream.name,
               style: TextStyle(
                 fontSize: 12,
                 fontWeight: isSelected ? FontWeight.w600 : FontWeight.w400,

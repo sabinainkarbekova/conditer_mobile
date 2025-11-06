@@ -37,38 +37,38 @@ class _CartScreenState extends State<CartScreen> {
       appBar: AppBar(
         title: Image.asset(
           'assets/images/logo2.png',
-          height: 40,
+          height: 80,
           fit: BoxFit.contain,
         ),
         centerTitle: true,
         backgroundColor: Colors.white,
         foregroundColor: Colors.black,
         elevation: 0,
-        leading: IconButton(
-          onPressed: () {
-            Navigator.pop(context); // Работает
-          },
-          icon: const Icon(Icons.arrow_back),
-        ),
-        actions: [
-          TextButton(
-            onPressed: () {
-              // Удалить всё из корзины
-              setState(() {
-                _cartItems.clear();
-                _totalPrice = 0;
-              });
-            },
-            child: const Text(
-              'Delete',
-              style: TextStyle(
-                fontFamily: 'Poppins',
-                fontSize: 16,
-                color: Colors.red,
-              ),
-            ),
-          ),
-        ],
+        // leading: IconButton(
+        //   onPressed: () {
+        //     Navigator.pop(context); // Работает
+        //   },
+        //   icon: const Icon(Icons.arrow_back),
+        // ),
+        // actions: [
+        //   TextButton(
+        //     onPressed: () {
+        //       // Удалить всё из корзины
+        //       setState(() {
+        //         _cartItems.clear();
+        //         _totalPrice = 0;
+        //       });
+        //     },
+        //     child: const Text(
+        //       'Delete',
+        //       style: TextStyle(
+        //         fontFamily: 'Poppins',
+        //         fontSize: 16,
+        //         color: Colors.red,
+        //       ),
+        //     ),
+        //   ),
+        //],
       ),
       body: SafeArea(
         child: Padding(
